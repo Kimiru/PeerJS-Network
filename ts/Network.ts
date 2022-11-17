@@ -1,11 +1,33 @@
-import Peer, { PeerErrorType } from "peerjs"
-import NetworkConnection from "./NetworkConnexion.js"
-import NetworkEvents from "./NetworkEvents.js"
+import Peer from "peerjs"
 
 declare global {
     interface Window {
         Peer: typeof Peer
     }
+}
+
+export class NetworkEvents {
+
+    static PEER_OPENED = 0 // id has been obtained
+    static UNAVAILABLE_ID = 1 // id could not be obtained
+    static INVALID_ID = 2 // id is invalid
+    static PEER_CONNECTION = 3// A user is connecting to you
+    static PEER_CLOSED = 4 // When peer is destroyed
+    static PEER_DISCONNECT = 5// Disconnected from signaling server
+    static PEER_ERROR = 6 // Fatal errors moslty
+
+    static HOST_P2P_OPENED = 7 // A connexion has been opened on the host/server side
+    static HOST_P2P_CLOSED = 8 // A connexion has been closed on the host/server side
+    static HOST_P2P_RECEIVED_DATA = 9
+
+    static CLIENT_P2P_OPENED = 10
+    static CLIENT_P2P_CLOSED = 11
+    static CLIENT_P2P_RECEIVED_DATA = 12
+    static CLIENT_P2P_CONFIRMED_CONNECTION = 13
+
+    static HOSTING_START = 14
+    static HOSTING_END = 15
+
 }
 
 /**
@@ -331,6 +353,215 @@ export class Network {
 
         if (index !== -1)
             Network.blacklist.splice(index, 1)
+
+    }
+
+}
+
+export class NetworkConnection {
+
+    connection: any
+    timer: Timer = new Timer()
+    intervalID: NodeJS.Timer
+    receiver: boolean
+
+    constructor(connection: any, receiver: boolean) {
+
+        this.connection = connection
+        this.receiver = receiver
+
+        this.intervalID = setInterval(this.#timeout.bind(this), 1000)
+
+        this.connection.on('open', this.#open.bind(this))
+        this.connection.on('close', this.#close.bind(this))
+        this.connection.on('data', this.#data.bind(this))
+
+    }
+
+    #timeout(): void {
+
+        if (this.timer.greaterThan(6000)) {
+
+            this.cleanclose()
+
+            // console.log(`Connection with "${this.id}" timed out`)
+
+        } else
+            this.connection.send('Network$IAMHERE')
+
+    }
+
+    #open(): void {
+
+        // console.log(`connection opened with ${this.id}`)
+
+        if (this.receiver) {
+
+            if (!Network.isHosting || !Network.acceptConnections ||
+                Network.isFull() ||
+                Network.blacklist.includes(this.id) ||
+                Network.useWhitelist && !Network.whitelist.includes(this.id)) {
+
+                this.cleanclose()
+
+            } else {
+
+                for (let callback of Network.getCallbacks(NetworkEvents.HOST_P2P_OPENED))
+                    callback.call(this)
+
+                this.connection.send('Network$CONFIRM')
+
+            }
+
+
+        } else {
+
+            for (let callback of Network.getCallbacks(NetworkEvents.CLIENT_P2P_OPENED))
+                callback.call(this)
+
+        }
+
+    }
+
+    #close(): void {
+
+        // console.log(`connection closed with ${this.id}`)
+
+        if (this.receiver) {
+
+            for (let callback of Network.getCallbacks(NetworkEvents.HOST_P2P_CLOSED))
+                callback.call(this)
+
+        } else {
+
+            for (let callback of Network.getCallbacks(NetworkEvents.CLIENT_P2P_CLOSED))
+                callback.call(this)
+
+        }
+
+        this.clean()
+
+    }
+
+    #data(data: any): void {
+
+        this.timer.reset()
+
+        if (data === 'Network$CLOSE')
+            this.cleanclose()
+
+        else if (data === 'Network$IAMHERE')
+            return
+
+        else if (data === 'Network$CONFIRM' && !this.receiver)
+            for (let callback of Network.getCallbacks(NetworkEvents.CLIENT_P2P_CONFIRMED_CONNECTION))
+                callback.call(this, data)
+
+        else
+            if (this.receiver)
+                for (let callback of Network.getCallbacks(NetworkEvents.HOST_P2P_RECEIVED_DATA))
+                    callback.call(this, data)
+
+            else
+                for (let callback of Network.getCallbacks(NetworkEvents.CLIENT_P2P_RECEIVED_DATA))
+                    callback.call(this, data)
+
+
+
+
+    }
+
+    get id() { return this.connection.peer }
+
+    /**
+     * Removes the connection from Network.connections and deletes the timeout interval
+     */
+    clean(): void {
+
+        clearInterval(this.intervalID)
+
+        Network.connections.delete(this.id)
+
+    }
+
+    /**
+     * Sends a closing message to the connected peer and closes the connection with it
+     */
+    close(): void {
+
+        this.connection.send('Network$CLOSE')
+
+        setTimeout(() => { this.connection.close() }, 250)
+
+    }
+
+    /**
+     * Execute the function this.clean() and this.close()
+     */
+    cleanclose() {
+
+        this.clean()
+        this.close()
+
+    }
+
+}
+
+/**
+ * The Timer class is used to mesure time easily
+ */
+export class Timer {
+
+    begin: number
+
+    /**
+     * Create a new timer starting from now or a given setpoint
+     * 
+     * @param time 
+     */
+    constructor(time = Date.now()) {
+
+        this.begin = time;
+
+    }
+
+    /**
+     * Reset the timer
+     */
+    reset(): void {
+
+        this.begin = Date.now()
+
+    }
+
+    /**
+     * Return the amount of time in ms since the timer was last reset
+     */
+    getTime(): number {
+
+        return Date.now() - this.begin;
+
+    }
+
+    /**
+     * Return true if the time since the last reset is greather that the given amount in ms
+     * 
+     * @param {number} amount in ms
+     */
+    greaterThan(amount: number): boolean {
+
+        return this.getTime() > amount;
+
+    }
+
+    /**
+     * Return true if the time since the last reset is less that the given amount in ms
+     * 
+     * @param {number} amount 
+     */
+    lessThan(amount: number): boolean {
+
+        return this.getTime() < amount;
 
     }
 
