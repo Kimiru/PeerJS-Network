@@ -4,7 +4,8 @@
         "module": "ESNext",
         "rootDir": "./ts",
         "outDir": "./js",
-        "moduleResolution": "node"
+        "moduleResolution": "node",
+        "declaration": true
     },
     "include": [
         "ts/**/*"

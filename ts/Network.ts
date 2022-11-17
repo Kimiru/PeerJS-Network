@@ -362,7 +362,7 @@ export class NetworkConnection {
 
     connection: any
     timer: Timer = new Timer()
-    intervalID: NodeJS.Timer
+    intervalID: number
     receiver: boolean
 
     constructor(connection: any, receiver: boolean) {
