@@ -1,0 +1,23 @@
+{
+    "name": "peerjs-network",
+    "version": "1.0.0",
+    "description": "",
+    "main": "",
+    "scripts": {
+        "build": "tsc"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/Kimiru/PeerJS-Network.git"
+    },
+    "author": "Kimiru",
+    "license": "ISC",
+    "bugs": {
+        "url": "https://github.com/Kimiru/PeerJS-Network/issues"
+    },
+    "homepage": "https://github.com/Kimiru/PeerJS-Network#readme",
+    "dependencies": {
+        "peerjs": "^1.4.7",
+        "typescript": "^4.9.3"
+    }
+}
