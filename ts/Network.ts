@@ -370,7 +370,7 @@ export class NetworkConnection {
         this.connection = connection
         this.receiver = receiver
 
-        this.intervalID = setInterval(this.#timeout.bind(this), 1000)
+        this.intervalID = window.setInterval(this.#timeout.bind(this), 1000)
 
         this.connection.on('open', this.#open.bind(this))
         this.connection.on('close', this.#close.bind(this))
