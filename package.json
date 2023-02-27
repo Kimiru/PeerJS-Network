@@ -4,8 +4,7 @@
     "description": "",
     "main": "js/Network.js",
     "scripts": {
-        "build": "tsc",
-        "prepublish": "tsc"
+        "build": "tsc"
     },
     "repository": {
         "type": "git",
