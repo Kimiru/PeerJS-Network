@@ -1,3 +1,4 @@
+import '../node_modules/peerjs/dist/peerjs.min.js';
 export class NetworkEvents {
     static PEER_OPENED = 0; // id has been obtained
     static UNAVAILABLE_ID = 1; // id could not be obtained

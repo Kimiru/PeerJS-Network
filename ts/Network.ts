@@ -1,4 +1,5 @@
 import Peer from "peerjs"
+import '../node_modules/peerjs/dist/peerjs.min.js'
 
 declare global {
     interface Window {
@@ -91,7 +92,7 @@ export class Network {
 
         peer.on('open', () => {
 
-            Network.peer = peer;
+            Network.peer = peer
             Network.id = peer.id
 
             for (let callback of Network.getCallbacks(NetworkEvents.PEER_OPENED))
@@ -521,7 +522,7 @@ export class Timer {
      */
     constructor(time = Date.now()) {
 
-        this.begin = time;
+        this.begin = time
 
     }
 
@@ -539,7 +540,7 @@ export class Timer {
      */
     getTime(): number {
 
-        return Date.now() - this.begin;
+        return Date.now() - this.begin
 
     }
 
@@ -550,7 +551,7 @@ export class Timer {
      */
     greaterThan(amount: number): boolean {
 
-        return this.getTime() > amount;
+        return this.getTime() > amount
 
     }
 
@@ -561,7 +562,7 @@ export class Timer {
      */
     lessThan(amount: number): boolean {
 
-        return this.getTime() < amount;
+        return this.getTime() < amount
 
     }
 

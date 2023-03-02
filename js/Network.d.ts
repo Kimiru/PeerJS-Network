@@ -1,4 +1,5 @@
 import Peer from "peerjs";
+import '../node_modules/peerjs/dist/peerjs.min.js';
 declare global {
     interface Window {
         Peer: typeof Peer;
