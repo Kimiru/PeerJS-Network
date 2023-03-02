@@ -40,17 +40,6 @@ export declare class Network {
     static connections: Map<string, NetworkConnection>;
     static callbacks: Map<NetworkEvents, ((data: any) => void)[]>;
     /**
-     * Returns true if SimplePeer is defined in the window object
-     * This value should be defined by default by the simple-peer implementaton
-     *
-     * @returns {boolean}
-     */
-    static enabled(): boolean;
-    /**
-     * Throw an error if Network.enabled returns false
-     */
-    static assertEnabled(): void;
-    /**
      * Returns true if there is any connection currenlty active
      *
      * @returns {boolean}

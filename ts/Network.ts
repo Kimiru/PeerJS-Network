@@ -53,19 +53,6 @@ export class Network {
     static callbacks: Map<NetworkEvents, ((data: any) => void)[]> = new Map()
 
     /**
-     * Returns true if SimplePeer is defined in the window object
-     * This value should be defined by default by the simple-peer implementaton
-     * 
-     * @returns {boolean}
-     */
-    static enabled(): boolean { return window.Peer != null }
-
-    /**
-     * Throw an error if Network.enabled returns false
-     */
-    static assertEnabled() { if (!Network.enabled()) throw new Error('PeerJS must be included and defined in window.Peer for Network functionalities to work') }
-
-    /**
      * Returns true if there is any connection currenlty active
      * 
      * @returns {boolean}
