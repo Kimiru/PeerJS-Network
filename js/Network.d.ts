@@ -5,23 +5,23 @@ declare global {
         Peer: typeof Peer;
     }
 }
-export declare class NetworkEvents {
-    static PEER_OPENED: number;
-    static UNAVAILABLE_ID: number;
-    static INVALID_ID: number;
-    static PEER_CONNECTION: number;
-    static PEER_CLOSED: number;
-    static PEER_DISCONNECT: number;
-    static PEER_ERROR: number;
-    static HOST_P2P_OPENED: number;
-    static HOST_P2P_CLOSED: number;
-    static HOST_P2P_RECEIVED_DATA: number;
-    static CLIENT_P2P_OPENED: number;
-    static CLIENT_P2P_CLOSED: number;
-    static CLIENT_P2P_RECEIVED_DATA: number;
-    static CLIENT_P2P_CONFIRMED_CONNECTION: number;
-    static HOSTING_START: number;
-    static HOSTING_END: number;
+export declare enum NetworkEvent {
+    PEER_OPENED = 0,
+    UNAVAILABLE_ID = 1,
+    INVALID_ID = 2,
+    PEER_CONNECTION = 3,
+    PEER_CLOSED = 4,
+    PEER_DISCONNECT = 5,
+    PEER_ERROR = 6,
+    HOST_P2P_OPENED = 7,
+    HOST_P2P_CLOSED = 8,
+    HOST_P2P_RECEIVED_DATA = 9,
+    CLIENT_P2P_OPENED = 10,
+    CLIENT_P2P_CLOSED = 11,
+    CLIENT_P2P_RECEIVED_DATA = 12,
+    CLIENT_P2P_CONFIRMED_CONNECTION = 13,
+    HOSTING_START = 14,
+    HOSTING_END = 15
 }
 /**
  * The Network class uses PeerJS to manage P2P connection.
@@ -38,7 +38,7 @@ export declare class Network {
     static whitelist: string[];
     static blacklist: string[];
     static connections: Map<string, NetworkConnection>;
-    static callbacks: Map<NetworkEvents, ((data: any) => void)[]>;
+    static callbacks: Map<NetworkEvent, ((data: any) => void)[]>;
     /**
      * Returns true if there is any connection currenlty active
      *
@@ -120,17 +120,17 @@ export declare class Network {
     /**
      * Add a callback for a given event
      *
-     * @param {NetworkEvents} event
+     * @param {NetworkEvent} event
      * @param callback
      */
-    static on(event: NetworkEvents, callback: (data: any) => void): void;
+    static on(event: NetworkEvent, callback: (data: any) => void): void;
     /**
      * Returns all callbacks associated with the given event
      *
-     * @param {NetworkEvents} event
+     * @param {NetworkEvent} event
      * @returns {((data:any)=>void)[]}
      */
-    static getCallbacks(event: NetworkEvents): ((data: any) => void)[];
+    static getCallbacks(event: NetworkEvent): ((data: any) => void)[];
     /**
      * Puts a given id into the whitelist
      *

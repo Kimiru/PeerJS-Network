@@ -7,27 +7,27 @@ declare global {
     }
 }
 
-export class NetworkEvents {
+export enum NetworkEvent {
 
-    static PEER_OPENED = 0 // id has been obtained
-    static UNAVAILABLE_ID = 1 // id could not be obtained
-    static INVALID_ID = 2 // id is invalid
-    static PEER_CONNECTION = 3// A user is connecting to you
-    static PEER_CLOSED = 4 // When peer is destroyed
-    static PEER_DISCONNECT = 5// Disconnected from signaling server
-    static PEER_ERROR = 6 // Fatal errors moslty
+    PEER_OPENED,  // id has been obtained
+    UNAVAILABLE_ID,  // id could not be obtained
+    INVALID_ID, // id is invalid
+    PEER_CONNECTION,// A user is connecting to you
+    PEER_CLOSED, // When peer is destroyed
+    PEER_DISCONNECT, // Disconnected from signaling server
+    PEER_ERROR, // Fatal errors moslty
 
-    static HOST_P2P_OPENED = 7 // A connexion has been opened on the host/server side
-    static HOST_P2P_CLOSED = 8 // A connexion has been closed on the host/server side
-    static HOST_P2P_RECEIVED_DATA = 9
+    HOST_P2P_OPENED, // A connexion has been opened on the host/server side
+    HOST_P2P_CLOSED,  // A connexion has been closed on the host/server side
+    HOST_P2P_RECEIVED_DATA,
 
-    static CLIENT_P2P_OPENED = 10
-    static CLIENT_P2P_CLOSED = 11
-    static CLIENT_P2P_RECEIVED_DATA = 12
-    static CLIENT_P2P_CONFIRMED_CONNECTION = 13
+    CLIENT_P2P_OPENED,
+    CLIENT_P2P_CLOSED,
+    CLIENT_P2P_RECEIVED_DATA,
+    CLIENT_P2P_CONFIRMED_CONNECTION,
 
-    static HOSTING_START = 14
-    static HOSTING_END = 15
+    HOSTING_START,
+    HOSTING_END,
 
 }
 
@@ -50,7 +50,7 @@ export class Network {
 
     static connections: Map<string, NetworkConnection> = new Map()
 
-    static callbacks: Map<NetworkEvents, ((data: any) => void)[]> = new Map()
+    static callbacks: Map<NetworkEvent, ((data: any) => void)[]> = new Map()
 
     /**
      * Returns true if there is any connection currenlty active
@@ -82,7 +82,7 @@ export class Network {
             Network.peer = peer
             Network.id = peer.id
 
-            for (let callback of Network.getCallbacks(NetworkEvents.PEER_OPENED))
+            for (let callback of Network.getCallbacks(NetworkEvent.PEER_OPENED))
                 callback.call(Network, Network.id)
 
         })
@@ -93,13 +93,13 @@ export class Network {
 
             this.connections.set(networkConnection.id, networkConnection)
 
-            for (let callback of Network.getCallbacks(NetworkEvents.PEER_CONNECTION))
+            for (let callback of Network.getCallbacks(NetworkEvent.PEER_CONNECTION))
                 callback.call(Network, networkConnection)
         })
 
         peer.on('close', () => {
 
-            for (let callback of Network.getCallbacks(NetworkEvents.PEER_CLOSED))
+            for (let callback of Network.getCallbacks(NetworkEvent.PEER_CLOSED))
                 callback.call(Network)
 
         })
@@ -108,21 +108,21 @@ export class Network {
             (error) => {
 
                 if ((error as any).type === 'unavailable-id')
-                    for (let callback of Network.getCallbacks(NetworkEvents.UNAVAILABLE_ID))
+                    for (let callback of Network.getCallbacks(NetworkEvent.UNAVAILABLE_ID))
                         callback.call(Network)
 
                 else if ((error as any).type === 'invalid-id')
-                    for (let callback of Network.getCallbacks(NetworkEvents.INVALID_ID))
+                    for (let callback of Network.getCallbacks(NetworkEvent.INVALID_ID))
                         callback.call(Network)
 
-                else for (let callback of Network.getCallbacks(NetworkEvents.PEER_ERROR))
+                else for (let callback of Network.getCallbacks(NetworkEvent.PEER_ERROR))
                     callback.call(Network, error)
 
             })
 
         peer.on('disconnected', () => {
 
-            for (let callback of Network.getCallbacks(NetworkEvents.PEER_DISCONNECT))
+            for (let callback of Network.getCallbacks(NetworkEvent.PEER_DISCONNECT))
                 callback.call(Network)
 
         })
@@ -267,10 +267,10 @@ export class Network {
     /**
      * Add a callback for a given event
      * 
-     * @param {NetworkEvents} event 
+     * @param {NetworkEvent} event 
      * @param callback 
      */
-    static on(event: NetworkEvents, callback: (data: any) => void): void {
+    static on(event: NetworkEvent, callback: (data: any) => void): void {
 
         if (!Network.callbacks.has(event))
             Network.callbacks.set(event, [])
@@ -282,10 +282,10 @@ export class Network {
     /**
      * Returns all callbacks associated with the given event
      * 
-     * @param {NetworkEvents} event 
+     * @param {NetworkEvent} event 
      * @returns {((data:any)=>void)[]}
      */
-    static getCallbacks(event: NetworkEvents): ((data: any) => void)[] {
+    static getCallbacks(event: NetworkEvent): ((data: any) => void)[] {
         return Network.callbacks.get(event) ?? []
     }
 
@@ -394,7 +394,7 @@ export class NetworkConnection {
 
             } else {
 
-                for (let callback of Network.getCallbacks(NetworkEvents.HOST_P2P_OPENED))
+                for (let callback of Network.getCallbacks(NetworkEvent.HOST_P2P_OPENED))
                     callback.call(this)
 
                 this.connection.send('Network$CONFIRM')
@@ -404,7 +404,7 @@ export class NetworkConnection {
 
         } else {
 
-            for (let callback of Network.getCallbacks(NetworkEvents.CLIENT_P2P_OPENED))
+            for (let callback of Network.getCallbacks(NetworkEvent.CLIENT_P2P_OPENED))
                 callback.call(this)
 
         }
@@ -417,12 +417,12 @@ export class NetworkConnection {
 
         if (this.receiver) {
 
-            for (let callback of Network.getCallbacks(NetworkEvents.HOST_P2P_CLOSED))
+            for (let callback of Network.getCallbacks(NetworkEvent.HOST_P2P_CLOSED))
                 callback.call(this)
 
         } else {
 
-            for (let callback of Network.getCallbacks(NetworkEvents.CLIENT_P2P_CLOSED))
+            for (let callback of Network.getCallbacks(NetworkEvent.CLIENT_P2P_CLOSED))
                 callback.call(this)
 
         }
@@ -442,16 +442,16 @@ export class NetworkConnection {
             return
 
         else if (data === 'Network$CONFIRM' && !this.receiver)
-            for (let callback of Network.getCallbacks(NetworkEvents.CLIENT_P2P_CONFIRMED_CONNECTION))
+            for (let callback of Network.getCallbacks(NetworkEvent.CLIENT_P2P_CONFIRMED_CONNECTION))
                 callback.call(this, data)
 
         else
             if (this.receiver)
-                for (let callback of Network.getCallbacks(NetworkEvents.HOST_P2P_RECEIVED_DATA))
+                for (let callback of Network.getCallbacks(NetworkEvent.HOST_P2P_RECEIVED_DATA))
                     callback.call(this, data)
 
             else
-                for (let callback of Network.getCallbacks(NetworkEvents.CLIENT_P2P_RECEIVED_DATA))
+                for (let callback of Network.getCallbacks(NetworkEvent.CLIENT_P2P_RECEIVED_DATA))
                     callback.call(this, data)
 
 

@@ -1,22 +1,23 @@
 import '../node_modules/peerjs/dist/peerjs.min.js';
-export class NetworkEvents {
-    static PEER_OPENED = 0; // id has been obtained
-    static UNAVAILABLE_ID = 1; // id could not be obtained
-    static INVALID_ID = 2; // id is invalid
-    static PEER_CONNECTION = 3; // A user is connecting to you
-    static PEER_CLOSED = 4; // When peer is destroyed
-    static PEER_DISCONNECT = 5; // Disconnected from signaling server
-    static PEER_ERROR = 6; // Fatal errors moslty
-    static HOST_P2P_OPENED = 7; // A connexion has been opened on the host/server side
-    static HOST_P2P_CLOSED = 8; // A connexion has been closed on the host/server side
-    static HOST_P2P_RECEIVED_DATA = 9;
-    static CLIENT_P2P_OPENED = 10;
-    static CLIENT_P2P_CLOSED = 11;
-    static CLIENT_P2P_RECEIVED_DATA = 12;
-    static CLIENT_P2P_CONFIRMED_CONNECTION = 13;
-    static HOSTING_START = 14;
-    static HOSTING_END = 15;
-}
+export var NetworkEvent;
+(function (NetworkEvent) {
+    NetworkEvent[NetworkEvent["PEER_OPENED"] = 0] = "PEER_OPENED";
+    NetworkEvent[NetworkEvent["UNAVAILABLE_ID"] = 1] = "UNAVAILABLE_ID";
+    NetworkEvent[NetworkEvent["INVALID_ID"] = 2] = "INVALID_ID";
+    NetworkEvent[NetworkEvent["PEER_CONNECTION"] = 3] = "PEER_CONNECTION";
+    NetworkEvent[NetworkEvent["PEER_CLOSED"] = 4] = "PEER_CLOSED";
+    NetworkEvent[NetworkEvent["PEER_DISCONNECT"] = 5] = "PEER_DISCONNECT";
+    NetworkEvent[NetworkEvent["PEER_ERROR"] = 6] = "PEER_ERROR";
+    NetworkEvent[NetworkEvent["HOST_P2P_OPENED"] = 7] = "HOST_P2P_OPENED";
+    NetworkEvent[NetworkEvent["HOST_P2P_CLOSED"] = 8] = "HOST_P2P_CLOSED";
+    NetworkEvent[NetworkEvent["HOST_P2P_RECEIVED_DATA"] = 9] = "HOST_P2P_RECEIVED_DATA";
+    NetworkEvent[NetworkEvent["CLIENT_P2P_OPENED"] = 10] = "CLIENT_P2P_OPENED";
+    NetworkEvent[NetworkEvent["CLIENT_P2P_CLOSED"] = 11] = "CLIENT_P2P_CLOSED";
+    NetworkEvent[NetworkEvent["CLIENT_P2P_RECEIVED_DATA"] = 12] = "CLIENT_P2P_RECEIVED_DATA";
+    NetworkEvent[NetworkEvent["CLIENT_P2P_CONFIRMED_CONNECTION"] = 13] = "CLIENT_P2P_CONFIRMED_CONNECTION";
+    NetworkEvent[NetworkEvent["HOSTING_START"] = 14] = "HOSTING_START";
+    NetworkEvent[NetworkEvent["HOSTING_END"] = 15] = "HOSTING_END";
+})(NetworkEvent || (NetworkEvent = {}));
 /**
  * The Network class uses PeerJS to manage P2P connection.
  * On top of peerjs it manages timeouts conditional hosting (whitelist blacklist)
@@ -56,32 +57,32 @@ export class Network {
         peer.on('open', () => {
             Network.peer = peer;
             Network.id = peer.id;
-            for (let callback of Network.getCallbacks(NetworkEvents.PEER_OPENED))
+            for (let callback of Network.getCallbacks(NetworkEvent.PEER_OPENED))
                 callback.call(Network, Network.id);
         });
         peer.on('connection', (conn) => {
             let networkConnection = new NetworkConnection(conn, true);
             this.connections.set(networkConnection.id, networkConnection);
-            for (let callback of Network.getCallbacks(NetworkEvents.PEER_CONNECTION))
+            for (let callback of Network.getCallbacks(NetworkEvent.PEER_CONNECTION))
                 callback.call(Network, networkConnection);
         });
         peer.on('close', () => {
-            for (let callback of Network.getCallbacks(NetworkEvents.PEER_CLOSED))
+            for (let callback of Network.getCallbacks(NetworkEvent.PEER_CLOSED))
                 callback.call(Network);
         });
         peer.on('error', (error) => {
             if (error.type === 'unavailable-id')
-                for (let callback of Network.getCallbacks(NetworkEvents.UNAVAILABLE_ID))
+                for (let callback of Network.getCallbacks(NetworkEvent.UNAVAILABLE_ID))
                     callback.call(Network);
             else if (error.type === 'invalid-id')
-                for (let callback of Network.getCallbacks(NetworkEvents.INVALID_ID))
+                for (let callback of Network.getCallbacks(NetworkEvent.INVALID_ID))
                     callback.call(Network);
             else
-                for (let callback of Network.getCallbacks(NetworkEvents.PEER_ERROR))
+                for (let callback of Network.getCallbacks(NetworkEvent.PEER_ERROR))
                     callback.call(Network, error);
         });
         peer.on('disconnected', () => {
-            for (let callback of Network.getCallbacks(NetworkEvents.PEER_DISCONNECT))
+            for (let callback of Network.getCallbacks(NetworkEvent.PEER_DISCONNECT))
                 callback.call(Network);
         });
     }
@@ -190,7 +191,7 @@ export class Network {
     /**
      * Add a callback for a given event
      *
-     * @param {NetworkEvents} event
+     * @param {NetworkEvent} event
      * @param callback
      */
     static on(event, callback) {
@@ -201,7 +202,7 @@ export class Network {
     /**
      * Returns all callbacks associated with the given event
      *
-     * @param {NetworkEvents} event
+     * @param {NetworkEvent} event
      * @returns {((data:any)=>void)[]}
      */
     static getCallbacks(event) {
@@ -278,24 +279,24 @@ export class NetworkConnection {
                 this.cleanclose();
             }
             else {
-                for (let callback of Network.getCallbacks(NetworkEvents.HOST_P2P_OPENED))
+                for (let callback of Network.getCallbacks(NetworkEvent.HOST_P2P_OPENED))
                     callback.call(this);
                 this.connection.send('Network$CONFIRM');
             }
         }
         else {
-            for (let callback of Network.getCallbacks(NetworkEvents.CLIENT_P2P_OPENED))
+            for (let callback of Network.getCallbacks(NetworkEvent.CLIENT_P2P_OPENED))
                 callback.call(this);
         }
     }
     #close() {
         // console.log(`connection closed with ${this.id}`)
         if (this.receiver) {
-            for (let callback of Network.getCallbacks(NetworkEvents.HOST_P2P_CLOSED))
+            for (let callback of Network.getCallbacks(NetworkEvent.HOST_P2P_CLOSED))
                 callback.call(this);
         }
         else {
-            for (let callback of Network.getCallbacks(NetworkEvents.CLIENT_P2P_CLOSED))
+            for (let callback of Network.getCallbacks(NetworkEvent.CLIENT_P2P_CLOSED))
                 callback.call(this);
         }
         this.clean();
@@ -307,13 +308,13 @@ export class NetworkConnection {
         else if (data === 'Network$IAMHERE')
             return;
         else if (data === 'Network$CONFIRM' && !this.receiver)
-            for (let callback of Network.getCallbacks(NetworkEvents.CLIENT_P2P_CONFIRMED_CONNECTION))
+            for (let callback of Network.getCallbacks(NetworkEvent.CLIENT_P2P_CONFIRMED_CONNECTION))
                 callback.call(this, data);
         else if (this.receiver)
-            for (let callback of Network.getCallbacks(NetworkEvents.HOST_P2P_RECEIVED_DATA))
+            for (let callback of Network.getCallbacks(NetworkEvent.HOST_P2P_RECEIVED_DATA))
                 callback.call(this, data);
         else
-            for (let callback of Network.getCallbacks(NetworkEvents.CLIENT_P2P_RECEIVED_DATA))
+            for (let callback of Network.getCallbacks(NetworkEvent.CLIENT_P2P_RECEIVED_DATA))
                 callback.call(this, data);
     }
     get id() { return this.connection.peer; }
