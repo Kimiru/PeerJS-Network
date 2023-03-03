@@ -29,7 +29,7 @@ export declare enum NetworkEvent {
  *    and auto rejection against unwanted connections.
  */
 export declare class Network {
-    static peer: any;
+    static peer: Peer;
     static id: string;
     static isHosting: boolean;
     static maxClient: number;

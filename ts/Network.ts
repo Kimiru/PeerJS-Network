@@ -38,7 +38,7 @@ export enum NetworkEvent {
  */
 export class Network {
 
-    static peer: any = null
+    static peer: Peer = null
     static id: string = null
     static isHosting: boolean = false
     static maxClient: number = 15
@@ -73,7 +73,6 @@ export class Network {
      * @param {any} options see peerjs documentation for Peer options
      */
     static start(id: string, options: any = undefined): any {
-
 
         let peer = new window.Peer(id, options)
 
@@ -128,7 +127,6 @@ export class Network {
         })
 
     }
-
 
     static reconnect(): void {
 
