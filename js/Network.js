@@ -28,6 +28,7 @@ export class Network {
     static id = null;
     static isHosting = false;
     static maxClient = 15;
+    static autoReconnectSignalingServer = true;
     static acceptConnections = true;
     static useWhitelist = true;
     static whitelist = [];
@@ -84,6 +85,8 @@ export class Network {
         peer.on('disconnected', () => {
             for (let callback of Network.getCallbacks(NetworkEvent.PEER_DISCONNECT))
                 callback.call(Network);
+            if (this.autoReconnectSignalingServer)
+                peer.reconnect();
         });
     }
     static reconnect() {

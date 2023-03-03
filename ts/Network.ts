@@ -42,6 +42,7 @@ export class Network {
     static id: string = null
     static isHosting: boolean = false
     static maxClient: number = 15
+    static autoReconnectSignalingServer: boolean = true
 
     static acceptConnections: boolean = true
     static useWhitelist: boolean = true
@@ -124,6 +125,9 @@ export class Network {
 
             for (let callback of Network.getCallbacks(NetworkEvent.PEER_DISCONNECT))
                 callback.call(Network)
+
+            if (this.autoReconnectSignalingServer)
+                peer.reconnect()
 
         })
 
