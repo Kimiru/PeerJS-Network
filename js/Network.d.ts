@@ -33,6 +33,7 @@ export declare class Network {
     static id: string;
     static isHosting: boolean;
     static maxClient: number;
+    static autoReconnectSignalingServer: boolean;
     static acceptConnections: boolean;
     static useWhitelist: boolean;
     static whitelist: string[];
