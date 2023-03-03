@@ -52,7 +52,7 @@ export class Network {
      * @param {string} id
      * @param {any} options see peerjs documentation for Peer options
      */
-    static start(id, options = undefined) {
+    static start(id, options = {}) {
         let peer = new window.Peer(id, options);
         peer.on('open', () => {
             Network.peer = peer;

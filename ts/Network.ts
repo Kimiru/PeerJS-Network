@@ -1,4 +1,4 @@
-import Peer from "peerjs"
+import Peer, { PeerJSOption } from "peerjs"
 import '../node_modules/peerjs/dist/peerjs.min.js'
 
 declare global {
@@ -72,7 +72,7 @@ export class Network {
      * @param {string} id 
      * @param {any} options see peerjs documentation for Peer options
      */
-    static start(id: string, options: any = undefined): any {
+    static start(id: string, options: PeerJSOption = {}): any {
 
         let peer = new window.Peer(id, options)
 

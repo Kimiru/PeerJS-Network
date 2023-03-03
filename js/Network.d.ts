@@ -1,4 +1,4 @@
-import Peer from "peerjs";
+import Peer, { PeerJSOption } from "peerjs";
 import '../node_modules/peerjs/dist/peerjs.min.js';
 declare global {
     interface Window {
@@ -57,7 +57,7 @@ export declare class Network {
      * @param {string} id
      * @param {any} options see peerjs documentation for Peer options
      */
-    static start(id: string, options?: any): any;
+    static start(id: string, options?: PeerJSOption): any;
     static reconnect(): void;
     /**
      * Enable hosting, if any connection is opened at time,
