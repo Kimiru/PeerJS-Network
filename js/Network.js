@@ -36,21 +36,14 @@ export class Network {
     static callbacks = new Map();
     /**
      * Returns true if there is any connection currenlty active
-     *
-     * @returns {boolean}
      */
     static hasConnections() { return Network.connections.size !== 0; }
     /**
      * Returns true if the network is hosting and the number of connection currently active is at least equal to Network.maxClient
-     *
-     * @returns {boolean}
      */
     static isFull() { return Network.connections.size >= Network.maxClient; }
     /**
      * Connect to the signaling server
-     *
-     * @param {string} id
-     * @param {any} options see peerjs documentation for Peer options
      */
     static start(id, options = {}) {
         let peer = new window.Peer(id, options);
@@ -94,9 +87,6 @@ export class Network {
      * Enable hosting, if any connection is opened at time,
      * uses abortIfConnections to determined if those connections should be closed and the operation should proceed
      * Returns the new state of isHosting
-     *
-     * @param {boolean} abortIfConnections
-     * @returns {boolean}
      */
     static enableHosting(abortIfConnections = false) {
         if (!Network.isHosting)
@@ -110,9 +100,6 @@ export class Network {
      * Disable hosting, if any connection is opened at time,
      * uses abortIfConnections to determined if those connections should be closed and the operation should proceed.
      * Returns the new state of isHosting.
-     *
-     * @param {boolean} abortIfConnections
-     * @returns {boolean}
      */
     static disableHosting(abortIfConnections = false) {
         if (Network.isHosting)
@@ -127,9 +114,6 @@ export class Network {
      * will throw an error if not connected to the signaling server or currently hosting.
      * Will automaticaly store the connectino into Network.connections.
      * Will throw an error if you are already connected to a peer.
-     *
-     * @param {string} id
-     * @returns {NetworkConnection}
      */
     static connectTo(id) {
         if (id === this.id)
@@ -197,29 +181,22 @@ export class Network {
     static on(event, callback) {
         if (!Network.callbacks.has(event))
             Network.callbacks.set(event, []);
-        Network.callbacks.get(event).push(callback);
+        Network.callbacks.get(event)?.push(callback);
     }
     /**
      * Returns all callbacks associated with the given event
-     *
-     * @param {NetworkEvent} event
-     * @returns {((data:any)=>void)[]}
      */
     static getCallbacks(event) {
         return Network.callbacks.get(event) ?? [];
     }
     /**
      * Puts a given id into the whitelist
-     *
-     * @param {string} id
      */
     static allow(id) {
         Network.whitelist.push(id);
     }
     /**
      * Removes a given id from the whitelist, closing the connection if it exists
-     *
-     * @param {string} id
      */
     static deny(id) {
         let index = Network.whitelist.indexOf(id);
@@ -230,8 +207,6 @@ export class Network {
     }
     /**
      * Puts a given id into the blacklist, closing the connection if it exists
-     *
-     * @param {string} id
      */
     static ban(id) {
         Network.blacklist.push(id);
@@ -239,8 +214,6 @@ export class Network {
     }
     /**
      * Removes a given id from the blacklist
-     *
-     * @param {string} id
      */
     static unban(id) {
         let index = Network.blacklist.indexOf(id);

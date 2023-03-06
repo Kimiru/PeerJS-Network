@@ -29,8 +29,8 @@ export declare enum NetworkEvent {
  *    and auto rejection against unwanted connections.
  */
 export declare class Network {
-    static peer: Peer;
-    static id: string;
+    static peer: Peer | null;
+    static id: string | null;
     static isHosting: boolean;
     static maxClient: number;
     static acceptConnections: boolean;
@@ -41,21 +41,14 @@ export declare class Network {
     static callbacks: Map<NetworkEvent, ((data: any) => void)[]>;
     /**
      * Returns true if there is any connection currenlty active
-     *
-     * @returns {boolean}
      */
     static hasConnections(): boolean;
     /**
      * Returns true if the network is hosting and the number of connection currently active is at least equal to Network.maxClient
-     *
-     * @returns {boolean}
      */
     static isFull(): boolean;
     /**
      * Connect to the signaling server
-     *
-     * @param {string} id
-     * @param {any} options see peerjs documentation for Peer options
      */
     static start(id: string, options?: PeerJSOption): any;
     static reconnect(): void;
@@ -63,18 +56,12 @@ export declare class Network {
      * Enable hosting, if any connection is opened at time,
      * uses abortIfConnections to determined if those connections should be closed and the operation should proceed
      * Returns the new state of isHosting
-     *
-     * @param {boolean} abortIfConnections
-     * @returns {boolean}
      */
     static enableHosting(abortIfConnections?: boolean): boolean;
     /**
      * Disable hosting, if any connection is opened at time,
      * uses abortIfConnections to determined if those connections should be closed and the operation should proceed.
      * Returns the new state of isHosting.
-     *
-     * @param {boolean} abortIfConnections
-     * @returns {boolean}
      */
     static disableHosting(abortIfConnections?: boolean): boolean;
     /**
@@ -82,9 +69,6 @@ export declare class Network {
      * will throw an error if not connected to the signaling server or currently hosting.
      * Will automaticaly store the connectino into Network.connections.
      * Will throw an error if you are already connected to a peer.
-     *
-     * @param {string} id
-     * @returns {NetworkConnection}
      */
     static connectTo(id: string): NetworkConnection;
     /**
@@ -126,33 +110,22 @@ export declare class Network {
     static on(event: NetworkEvent, callback: (data: any) => void): void;
     /**
      * Returns all callbacks associated with the given event
-     *
-     * @param {NetworkEvent} event
-     * @returns {((data:any)=>void)[]}
      */
     static getCallbacks(event: NetworkEvent): ((data: any) => void)[];
     /**
      * Puts a given id into the whitelist
-     *
-     * @param {string} id
      */
     static allow(id: string): void;
     /**
      * Removes a given id from the whitelist, closing the connection if it exists
-     *
-     * @param {string} id
      */
     static deny(id: string): void;
     /**
      * Puts a given id into the blacklist, closing the connection if it exists
-     *
-     * @param {string} id
      */
     static ban(id: string): void;
     /**
      * Removes a given id from the blacklist
-     *
-     * @param {string} id
      */
     static unban(id: string): void;
 }
