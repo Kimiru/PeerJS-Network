@@ -29,105 +29,105 @@ export declare enum NetworkEvent {
  *    and auto rejection against unwanted connections.
  */
 export declare class Network {
-    static peer: Peer | null;
-    static id: string | null;
-    static isHosting: boolean;
-    static maxClient: number;
-    static acceptConnections: boolean;
-    static useWhitelist: boolean;
-    static whitelist: string[];
-    static blacklist: string[];
-    static connections: Map<string, NetworkConnection>;
-    static callbacks: Map<NetworkEvent, ((data: any) => void)[]>;
+    peer: Peer | null;
+    id: string | null;
+    isHosting: boolean;
+    maxClient: number;
+    acceptConnections: boolean;
+    useWhitelist: boolean;
+    whitelist: string[];
+    blacklist: string[];
+    connections: Map<string, NetworkConnection>;
+    callbacks: Map<NetworkEvent, ((data: any) => void)[]>;
     /**
      * Returns true if there is any connection currenlty active
      */
-    static hasConnections(): boolean;
+    hasConnections(): boolean;
     /**
-     * Returns true if the network is hosting and the number of connection currently active is at least equal to Network.maxClient
+     * Returns true if the network is hosting and the number of connection currently active is at least equal to this.maxClient
      */
-    static isFull(): boolean;
+    isFull(): boolean;
     /**
      * Connect to the signaling server
      */
-    static start(id: string, options?: PeerJSOption): any;
-    static reconnect(): void;
+    start(id: string, options?: PeerJSOption): any;
+    reconnect(): void;
     /**
      * Enable hosting, if any connection is opened at time,
      * uses abortIfConnections to determined if those connections should be closed and the operation should proceed
      * Returns the new state of isHosting
      */
-    static enableHosting(abortIfConnections?: boolean): boolean;
+    enableHosting(abortIfConnections?: boolean): boolean;
     /**
      * Disable hosting, if any connection is opened at time,
      * uses abortIfConnections to determined if those connections should be closed and the operation should proceed.
      * Returns the new state of isHosting.
      */
-    static disableHosting(abortIfConnections?: boolean): boolean;
+    disableHosting(abortIfConnections?: boolean): boolean;
     /**
      * Tries to connect to a given peer.
      * will throw an error if not connected to the signaling server or currently hosting.
-     * Will automaticaly store the connectino into Network.connections.
+     * Will automaticaly store the connectino into this.connections.
      * Will throw an error if you are already connected to a peer.
      */
-    static connectTo(id: string): NetworkConnection;
+    connectTo(id: string): NetworkConnection;
     /**
      * Send any data to a given connected peer if it exists
      *
      * @param {string} id
      * @param {any} data
      */
-    static sendTo(id: string, data: any): void;
+    sendTo(id: string, data: any): void;
     /**
      * Send any data to every connected peer
      *
      * @param {any} data
      */
-    static sendToAll(data: any): void;
+    sendToAll(data: any): void;
     /**
      * Send any data to every connected peer except a given one
      *
      * @param {string} id
      * @param {any} data
      */
-    static sendToAllExcept(id: string, data: any): void;
+    sendToAllExcept(id: string, data: any): void;
     /**
      * Close the connection to a given peer if it exists
      *
      * @param {string} id
      */
-    static closeConnection(id: string): void;
+    closeConnection(id: string): void;
     /**
      * Close the connection with all connected peer
      */
-    static closeAllConnections(): void;
+    closeAllConnections(): void;
     /**
      * Add a callback for a given event
      *
      * @param {NetworkEvent} event
      * @param callback
      */
-    static on(event: NetworkEvent, callback: (data: any) => void): void;
+    on(event: NetworkEvent, callback: (data: any) => void): void;
     /**
      * Returns all callbacks associated with the given event
      */
-    static getCallbacks(event: NetworkEvent): ((data: any) => void)[];
+    getCallbacks(event: NetworkEvent): ((data: any) => void)[];
     /**
      * Puts a given id into the whitelist
      */
-    static allow(id: string): void;
+    allow(id: string): void;
     /**
      * Removes a given id from the whitelist, closing the connection if it exists
      */
-    static deny(id: string): void;
+    deny(id: string): void;
     /**
      * Puts a given id into the blacklist, closing the connection if it exists
      */
-    static ban(id: string): void;
+    ban(id: string): void;
     /**
      * Removes a given id from the blacklist
      */
-    static unban(id: string): void;
+    unban(id: string): void;
 }
 export declare class NetworkConnection {
     #private;
@@ -135,7 +135,8 @@ export declare class NetworkConnection {
     timer: Timer;
     intervalID: number;
     receiver: boolean;
-    constructor(connection: any, receiver: boolean);
+    network: Network;
+    constructor(connection: any, receiver: boolean, network: Network);
     get id(): any;
     /**
      * Removes the connection from Network.connections and deletes the timeout interval

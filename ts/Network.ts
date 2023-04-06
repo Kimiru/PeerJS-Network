@@ -38,60 +38,60 @@ export enum NetworkEvent {
  */
 export class Network {
 
-    static peer: Peer | null = null
-    static id: string | null = null
-    static isHosting: boolean = false
-    static maxClient: number = 15
+    peer: Peer | null = null
+    id: string | null = null
+    isHosting: boolean = false
+    maxClient: number = 15
 
-    static acceptConnections: boolean = true
-    static useWhitelist: boolean = true
-    static whitelist: string[] = []
-    static blacklist: string[] = []
+    acceptConnections: boolean = true
+    useWhitelist: boolean = true
+    whitelist: string[] = []
+    blacklist: string[] = []
 
-    static connections: Map<string, NetworkConnection> = new Map()
+    connections: Map<string, NetworkConnection> = new Map()
 
-    static callbacks: Map<NetworkEvent, ((data: any) => void)[]> = new Map()
+    callbacks: Map<NetworkEvent, ((data: any) => void)[]> = new Map()
 
     /**
      * Returns true if there is any connection currenlty active
      */
-    static hasConnections(): boolean { return Network.connections.size !== 0 }
+    hasConnections(): boolean { return this.connections.size !== 0 }
 
     /**
-     * Returns true if the network is hosting and the number of connection currently active is at least equal to Network.maxClient
+     * Returns true if the network is hosting and the number of connection currently active is at least equal to this.maxClient
      */
-    static isFull(): boolean { return Network.connections.size >= Network.maxClient }
+    isFull(): boolean { return this.connections.size >= this.maxClient }
 
     /**
      * Connect to the signaling server 
      */
-    static start(id: string, options: PeerJSOption = {}): any {
+    start(id: string, options: PeerJSOption = {}): any {
 
         let peer = new window.Peer(id, options)
 
         peer.on('open', () => {
 
-            Network.peer = peer
-            Network.id = peer.id
+            this.peer = peer
+            this.id = peer.id
 
-            for (let callback of Network.getCallbacks(NetworkEvent.PEER_OPENED))
-                callback.call(Network, Network.id)
+            for (let callback of this.getCallbacks(NetworkEvent.PEER_OPENED))
+                callback.call(Network, this.id)
 
         })
 
         peer.on('connection', (conn) => {
 
-            let networkConnection = new NetworkConnection(conn, true)
+            let networkConnection = new NetworkConnection(conn, true, this)
 
             this.connections.set(networkConnection.id, networkConnection)
 
-            for (let callback of Network.getCallbacks(NetworkEvent.PEER_CONNECTION))
+            for (let callback of this.getCallbacks(NetworkEvent.PEER_CONNECTION))
                 callback.call(Network, networkConnection)
         })
 
         peer.on('close', () => {
 
-            for (let callback of Network.getCallbacks(NetworkEvent.PEER_CLOSED))
+            for (let callback of this.getCallbacks(NetworkEvent.PEER_CLOSED))
                 callback.call(Network)
 
         })
@@ -100,30 +100,30 @@ export class Network {
             (error) => {
 
                 if ((error as any).type === 'unavailable-id')
-                    for (let callback of Network.getCallbacks(NetworkEvent.UNAVAILABLE_ID))
+                    for (let callback of this.getCallbacks(NetworkEvent.UNAVAILABLE_ID))
                         callback.call(Network)
 
                 else if ((error as any).type === 'invalid-id')
-                    for (let callback of Network.getCallbacks(NetworkEvent.INVALID_ID))
+                    for (let callback of this.getCallbacks(NetworkEvent.INVALID_ID))
                         callback.call(Network)
 
-                else for (let callback of Network.getCallbacks(NetworkEvent.PEER_ERROR))
+                else for (let callback of this.getCallbacks(NetworkEvent.PEER_ERROR))
                     callback.call(Network, error)
 
             })
 
         peer.on('disconnected', () => {
 
-            for (let callback of Network.getCallbacks(NetworkEvent.PEER_DISCONNECT))
+            for (let callback of this.getCallbacks(NetworkEvent.PEER_DISCONNECT))
                 callback.call(Network)
 
         })
 
     }
 
-    static reconnect(): void {
+    reconnect(): void {
 
-        if (Network.peer && Network.peer.disconnected) Network.peer.reconnect()
+        if (this.peer && this.peer.disconnected) this.peer.reconnect()
 
     }
 
@@ -132,13 +132,13 @@ export class Network {
      * uses abortIfConnections to determined if those connections should be closed and the operation should proceed
      * Returns the new state of isHosting
      */
-    static enableHosting(abortIfConnections: boolean = false): boolean {
+    enableHosting(abortIfConnections: boolean = false): boolean {
 
-        if (!Network.isHosting)
-            if (!Network.hasConnections() || !abortIfConnections) {
+        if (!this.isHosting)
+            if (!this.hasConnections() || !abortIfConnections) {
 
                 this.isHosting = true
-                Network.closeAllConnections()
+                this.closeAllConnections()
 
             }
 
@@ -153,12 +153,12 @@ export class Network {
      * uses abortIfConnections to determined if those connections should be closed and the operation should proceed.
      * Returns the new state of isHosting.
      */
-    static disableHosting(abortIfConnections: boolean = false): boolean {
+    disableHosting(abortIfConnections: boolean = false): boolean {
 
-        if (Network.isHosting)
-            if (!Network.hasConnections() || !abortIfConnections) {
+        if (this.isHosting)
+            if (!this.hasConnections() || !abortIfConnections) {
 
-                Network.closeAllConnections()
+                this.closeAllConnections()
                 this.isHosting = false
 
             }
@@ -170,19 +170,19 @@ export class Network {
     /**
      * Tries to connect to a given peer.
      * will throw an error if not connected to the signaling server or currently hosting.
-     * Will automaticaly store the connectino into Network.connections.
+     * Will automaticaly store the connectino into this.connections.
      * Will throw an error if you are already connected to a peer.
      */
-    static connectTo(id: string): NetworkConnection {
+    connectTo(id: string): NetworkConnection {
 
         if (id === this.id) throw `You can't connect to yourself`
-        if (!Network.peer) throw `You can't connect to somebody without starting the Network and being connected to the signaling server`
-        if (Network.isHosting) throw `You can't connect to somebody while hosting`
-        if (Network.hasConnections()) throw `You can only connect to one peer at a time`
+        if (!this.peer) throw `You can't connect to somebody without starting the Network and being connected to the signaling server`
+        if (this.isHosting) throw `You can't connect to somebody while hosting`
+        if (this.hasConnections()) throw `You can only connect to one peer at a time`
 
-        let networkConnection = new NetworkConnection(Network.peer.connect(id), false)
+        let networkConnection = new NetworkConnection(this.peer.connect(id), false, this)
 
-        Network.connections.set(networkConnection.id, networkConnection)
+        this.connections.set(networkConnection.id, networkConnection)
 
         return networkConnection
 
@@ -194,9 +194,9 @@ export class Network {
      * @param {string} id 
      * @param {any} data 
      */
-    static sendTo(id: string, data: any): void {
+    sendTo(id: string, data: any): void {
 
-        Network.connections.get(id)?.connection.send(data)
+        this.connections.get(id)?.connection.send(data)
 
     }
 
@@ -205,9 +205,9 @@ export class Network {
      * 
      * @param {any} data 
      */
-    static sendToAll(data: any): void {
+    sendToAll(data: any): void {
 
-        for (let connection of Network.connections)
+        for (let connection of this.connections)
             connection[1].connection.send(data)
 
     }
@@ -218,9 +218,9 @@ export class Network {
      * @param {string} id 
      * @param {any} data 
      */
-    static sendToAllExcept(id: string, data: any): void {
+    sendToAllExcept(id: string, data: any): void {
 
-        for (let connection of Network.connections) if (connection[0] !== id)
+        for (let connection of this.connections) if (connection[0] !== id)
             connection[1].connection.send(data)
 
     }
@@ -230,18 +230,18 @@ export class Network {
      * 
      * @param {string} id 
      */
-    static closeConnection(id: string): void {
+    closeConnection(id: string): void {
 
-        Network.connections.get(id)?.cleanclose()
+        this.connections.get(id)?.cleanclose()
 
     }
 
     /**
      * Close the connection with all connected peer
      */
-    static closeAllConnections(): void {
+    closeAllConnections(): void {
 
-        for (let connection of Network.connections)
+        for (let connection of this.connections)
             connection[1].cleanclose()
 
     }
@@ -252,66 +252,66 @@ export class Network {
      * @param {NetworkEvent} event 
      * @param callback 
      */
-    static on(event: NetworkEvent, callback: (data: any) => void): void {
+    on(event: NetworkEvent, callback: (data: any) => void): void {
 
-        if (!Network.callbacks.has(event))
-            Network.callbacks.set(event, [])
+        if (!this.callbacks.has(event))
+            this.callbacks.set(event, [])
 
-        Network.callbacks.get(event)?.push(callback)
+        this.callbacks.get(event)?.push(callback)
 
     }
 
     /**
      * Returns all callbacks associated with the given event
      */
-    static getCallbacks(event: NetworkEvent): ((data: any) => void)[] {
-        return Network.callbacks.get(event) ?? []
+    getCallbacks(event: NetworkEvent): ((data: any) => void)[] {
+        return this.callbacks.get(event) ?? []
     }
 
     /**
      * Puts a given id into the whitelist
      */
-    static allow(id: string): void {
+    allow(id: string): void {
 
-        Network.whitelist.push(id)
+        this.whitelist.push(id)
 
     }
 
     /**
      * Removes a given id from the whitelist, closing the connection if it exists
      */
-    static deny(id: string): void {
+    deny(id: string): void {
 
-        let index = Network.whitelist.indexOf(id)
+        let index = this.whitelist.indexOf(id)
 
         if (index !== -1)
-            Network.whitelist.splice(index, 1)
+            this.whitelist.splice(index, 1)
 
         if (this.useWhitelist && this.isHosting)
-            Network.connections.get(id)?.cleanclose()
+            this.connections.get(id)?.cleanclose()
 
     }
 
     /**
      * Puts a given id into the blacklist, closing the connection if it exists
      */
-    static ban(id: string): void {
+    ban(id: string): void {
 
-        Network.blacklist.push(id)
+        this.blacklist.push(id)
 
-        Network.connections.get(id)?.cleanclose()
+        this.connections.get(id)?.cleanclose()
 
     }
 
     /**
      * Removes a given id from the blacklist
      */
-    static unban(id: string): void {
+    unban(id: string): void {
 
-        let index = Network.blacklist.indexOf(id)
+        let index = this.blacklist.indexOf(id)
 
         if (index !== -1)
-            Network.blacklist.splice(index, 1)
+            this.blacklist.splice(index, 1)
 
     }
 
@@ -323,11 +323,13 @@ export class NetworkConnection {
     timer: Timer = new Timer()
     intervalID: number
     receiver: boolean
+    network: Network
 
-    constructor(connection: any, receiver: boolean) {
+    constructor(connection: any, receiver: boolean, network: Network) {
 
         this.connection = connection
         this.receiver = receiver
+        this.network = network
 
         this.intervalID = window.setInterval(this.#timeout.bind(this), 1000)
 
@@ -356,16 +358,16 @@ export class NetworkConnection {
 
         if (this.receiver) {
 
-            if (!Network.isHosting || !Network.acceptConnections ||
-                Network.isFull() ||
-                Network.blacklist.includes(this.id) ||
-                Network.useWhitelist && !Network.whitelist.includes(this.id)) {
+            if (!this.network.isHosting || !this.network.acceptConnections ||
+                this.network.isFull() ||
+                this.network.blacklist.includes(this.id) ||
+                this.network.useWhitelist && !this.network.whitelist.includes(this.id)) {
 
                 this.cleanclose()
 
             } else {
 
-                for (let callback of Network.getCallbacks(NetworkEvent.HOST_P2P_OPENED))
+                for (let callback of this.network.getCallbacks(NetworkEvent.HOST_P2P_OPENED))
                     callback.call(this)
 
                 this.connection.send('Network$CONFIRM')
@@ -375,7 +377,7 @@ export class NetworkConnection {
 
         } else {
 
-            for (let callback of Network.getCallbacks(NetworkEvent.CLIENT_P2P_OPENED))
+            for (let callback of this.network.getCallbacks(NetworkEvent.CLIENT_P2P_OPENED))
                 callback.call(this)
 
         }
@@ -388,12 +390,12 @@ export class NetworkConnection {
 
         if (this.receiver) {
 
-            for (let callback of Network.getCallbacks(NetworkEvent.HOST_P2P_CLOSED))
+            for (let callback of this.network.getCallbacks(NetworkEvent.HOST_P2P_CLOSED))
                 callback.call(this)
 
         } else {
 
-            for (let callback of Network.getCallbacks(NetworkEvent.CLIENT_P2P_CLOSED))
+            for (let callback of this.network.getCallbacks(NetworkEvent.CLIENT_P2P_CLOSED))
                 callback.call(this)
 
         }
@@ -413,16 +415,16 @@ export class NetworkConnection {
             return
 
         else if (data === 'Network$CONFIRM' && !this.receiver)
-            for (let callback of Network.getCallbacks(NetworkEvent.CLIENT_P2P_CONFIRMED_CONNECTION))
+            for (let callback of this.network.getCallbacks(NetworkEvent.CLIENT_P2P_CONFIRMED_CONNECTION))
                 callback.call(this, data)
 
         else
             if (this.receiver)
-                for (let callback of Network.getCallbacks(NetworkEvent.HOST_P2P_RECEIVED_DATA))
+                for (let callback of this.network.getCallbacks(NetworkEvent.HOST_P2P_RECEIVED_DATA))
                     callback.call(this, data)
 
             else
-                for (let callback of Network.getCallbacks(NetworkEvent.CLIENT_P2P_RECEIVED_DATA))
+                for (let callback of this.network.getCallbacks(NetworkEvent.CLIENT_P2P_RECEIVED_DATA))
                     callback.call(this, data)
 
 
@@ -439,7 +441,7 @@ export class NetworkConnection {
 
         clearInterval(this.intervalID)
 
-        Network.connections.delete(this.id)
+        this.network.connections.delete(this.id)
 
     }
 
