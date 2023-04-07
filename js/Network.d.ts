@@ -1,4 +1,4 @@
-import Peer, { PeerJSOption } from "peerjs";
+import Peer, { DataConnection, PeerJSOption } from "peerjs";
 import '../node_modules/peerjs/dist/peerjs.min.js';
 declare global {
     interface Window {
@@ -38,7 +38,7 @@ export declare class Network {
     whitelist: string[];
     blacklist: string[];
     connections: Map<string, NetworkConnection>;
-    callbacks: Map<NetworkEvent, ((data: any) => void)[]>;
+    callbacks: Map<NetworkEvent, ((data: any) => Promise<void>)[]>;
     /**
      * Returns true if there is any connection currenlty active
      */
@@ -50,7 +50,7 @@ export declare class Network {
     /**
      * Connect to the signaling server
      */
-    start(id: string, options?: PeerJSOption): any;
+    start(id: string, options?: PeerJSOption): void;
     reconnect(): void;
     /**
      * Enable hosting, if any connection is opened at time,
@@ -107,11 +107,11 @@ export declare class Network {
      * @param {NetworkEvent} event
      * @param callback
      */
-    on(event: NetworkEvent, callback: (data: any) => void): void;
+    on(event: NetworkEvent, callback: (data: any) => Promise<void>): void;
     /**
      * Returns all callbacks associated with the given event
      */
-    getCallbacks(event: NetworkEvent): ((data: any) => void)[];
+    getCallbacks(event: NetworkEvent): ((data: any) => Promise<void>)[];
     /**
      * Puts a given id into the whitelist
      */
@@ -131,13 +131,13 @@ export declare class Network {
 }
 export declare class NetworkConnection {
     #private;
-    connection: any;
+    connection: DataConnection;
     timer: Timer;
     intervalID: number;
     receiver: boolean;
     network: Network;
     constructor(connection: any, receiver: boolean, network: Network);
-    get id(): any;
+    get id(): string;
     /**
      * Removes the connection from Network.connections and deletes the timeout interval
      */

@@ -1,9 +1,10 @@
-import Peer, { PeerJSOption } from "peerjs"
+import Peer, { DataConnection, PeerJSOption } from "peerjs"
 import '../node_modules/peerjs/dist/peerjs.min.js'
 
 declare global {
     interface Window {
-        Peer: typeof Peer
+        Peer: typeof Peer,
+
     }
 }
 
@@ -50,7 +51,7 @@ export class Network {
 
     connections: Map<string, NetworkConnection> = new Map()
 
-    callbacks: Map<NetworkEvent, ((data: any) => void)[]> = new Map()
+    callbacks: Map<NetworkEvent, ((data: any) => Promise<void>)[]> = new Map()
 
     /**
      * Returns true if there is any connection currenlty active
@@ -65,57 +66,57 @@ export class Network {
     /**
      * Connect to the signaling server 
      */
-    start(id: string, options: PeerJSOption = {}): any {
+    start(id: string, options: PeerJSOption = {}): void {
 
         let peer = new window.Peer(id, options)
 
-        peer.on('open', () => {
+        peer.on('open', async () => {
 
             this.peer = peer
             this.id = peer.id
 
             for (let callback of this.getCallbacks(NetworkEvent.PEER_OPENED))
-                callback.call(Network, this.id)
+                await callback.call(Network, this.id)
 
         })
 
-        peer.on('connection', (conn) => {
+        peer.on('connection', async (conn) => {
 
             let networkConnection = new NetworkConnection(conn, true, this)
 
             this.connections.set(networkConnection.id, networkConnection)
 
             for (let callback of this.getCallbacks(NetworkEvent.PEER_CONNECTION))
-                callback.call(Network, networkConnection)
+                await callback.call(Network, networkConnection)
         })
 
-        peer.on('close', () => {
+        peer.on('close', async () => {
 
             for (let callback of this.getCallbacks(NetworkEvent.PEER_CLOSED))
-                callback.call(Network)
+                await callback.call(Network)
 
         })
 
         peer.on('error',
-            (error) => {
+            async (error) => {
 
                 if ((error as any).type === 'unavailable-id')
                     for (let callback of this.getCallbacks(NetworkEvent.UNAVAILABLE_ID))
-                        callback.call(Network)
+                        await callback.call(Network)
 
                 else if ((error as any).type === 'invalid-id')
                     for (let callback of this.getCallbacks(NetworkEvent.INVALID_ID))
-                        callback.call(Network)
+                        await callback.call(Network)
 
                 else for (let callback of this.getCallbacks(NetworkEvent.PEER_ERROR))
-                    callback.call(Network, error)
+                    await callback.call(Network, error)
 
             })
 
-        peer.on('disconnected', () => {
+        peer.on('disconnected', async () => {
 
             for (let callback of this.getCallbacks(NetworkEvent.PEER_DISCONNECT))
-                callback.call(Network)
+                await callback.call(Network)
 
         })
 
@@ -180,7 +181,7 @@ export class Network {
         if (this.isHosting) throw `You can't connect to somebody while hosting`
         if (this.hasConnections()) throw `You can only connect to one peer at a time`
 
-        let networkConnection = new NetworkConnection(this.peer.connect(id), false, this)
+        let networkConnection = new NetworkConnection(this.peer.connect(id, { serialization: 'json' }), false, this)
 
         this.connections.set(networkConnection.id, networkConnection)
 
@@ -252,7 +253,7 @@ export class Network {
      * @param {NetworkEvent} event 
      * @param callback 
      */
-    on(event: NetworkEvent, callback: (data: any) => void): void {
+    on(event: NetworkEvent, callback: (data: any) => Promise<void>): void {
 
         if (!this.callbacks.has(event))
             this.callbacks.set(event, [])
@@ -264,7 +265,7 @@ export class Network {
     /**
      * Returns all callbacks associated with the given event
      */
-    getCallbacks(event: NetworkEvent): ((data: any) => void)[] {
+    getCallbacks(event: NetworkEvent): ((data: any) => Promise<void>)[] {
         return this.callbacks.get(event) ?? []
     }
 
@@ -319,7 +320,7 @@ export class Network {
 
 export class NetworkConnection {
 
-    connection: any
+    connection: DataConnection
     timer: Timer = new Timer()
     intervalID: number
     receiver: boolean
@@ -330,6 +331,8 @@ export class NetworkConnection {
         this.connection = connection
         this.receiver = receiver
         this.network = network
+
+        this.connection
 
         this.intervalID = window.setInterval(this.#timeout.bind(this), 1000)
 
@@ -352,7 +355,7 @@ export class NetworkConnection {
 
     }
 
-    #open(): void {
+    async #open(): Promise<void> {
 
         // console.log(`connection opened with ${this.id}`)
 
@@ -368,7 +371,7 @@ export class NetworkConnection {
             } else {
 
                 for (let callback of this.network.getCallbacks(NetworkEvent.HOST_P2P_OPENED))
-                    callback.call(this)
+                    await callback.call(this)
 
                 this.connection.send('Network$CONFIRM')
 
@@ -378,25 +381,25 @@ export class NetworkConnection {
         } else {
 
             for (let callback of this.network.getCallbacks(NetworkEvent.CLIENT_P2P_OPENED))
-                callback.call(this)
+                await callback.call(this)
 
         }
 
     }
 
-    #close(): void {
+    async #close(): Promise<void> {
 
         // console.log(`connection closed with ${this.id}`)
 
         if (this.receiver) {
 
             for (let callback of this.network.getCallbacks(NetworkEvent.HOST_P2P_CLOSED))
-                callback.call(this)
+                await callback.call(this)
 
         } else {
 
             for (let callback of this.network.getCallbacks(NetworkEvent.CLIENT_P2P_CLOSED))
-                callback.call(this)
+                await callback.call(this)
 
         }
 
@@ -404,7 +407,7 @@ export class NetworkConnection {
 
     }
 
-    #data(data: any): void {
+    async #data(data: any): Promise<void> {
 
         this.timer.reset()
 
@@ -416,17 +419,18 @@ export class NetworkConnection {
 
         else if (data === 'Network$CONFIRM' && !this.receiver)
             for (let callback of this.network.getCallbacks(NetworkEvent.CLIENT_P2P_CONFIRMED_CONNECTION))
-                callback.call(this, data)
+                await callback.call(this, data)
 
-        else
+        else {
+
             if (this.receiver)
                 for (let callback of this.network.getCallbacks(NetworkEvent.HOST_P2P_RECEIVED_DATA))
-                    callback.call(this, data)
+                    await callback.call(this, data)
 
             else
                 for (let callback of this.network.getCallbacks(NetworkEvent.CLIENT_P2P_RECEIVED_DATA))
-                    callback.call(this, data)
-
+                    await callback.call(this, data)
+        }
 
 
 
