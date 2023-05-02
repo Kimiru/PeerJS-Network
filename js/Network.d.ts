@@ -1,10 +1,4 @@
 import Peer, { DataConnection, PeerJSOption } from "peerjs";
-import '../node_modules/peerjs/dist/peerjs.min.js';
-declare global {
-    interface Window {
-        Peer: typeof Peer;
-    }
-}
 export declare enum NetworkEvent {
     PEER_OPENED = 0,
     UNAVAILABLE_ID = 1,

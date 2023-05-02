@@ -1,4 +1,4 @@
-import '../node_modules/peerjs/dist/peerjs.min.js';
+import Peer from "peerjs";
 export var NetworkEvent;
 (function (NetworkEvent) {
     NetworkEvent[NetworkEvent["PEER_OPENED"] = 0] = "PEER_OPENED";
@@ -46,7 +46,7 @@ export class Network {
      * Connect to the signaling server
      */
     start(id, options = {}) {
-        let peer = new window.Peer(id, options);
+        let peer = new Peer(id, options);
         peer.on('open', async () => {
             this.peer = peer;
             this.id = peer.id;

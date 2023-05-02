@@ -1,12 +1,4 @@
 import Peer, { DataConnection, PeerJSOption } from "peerjs"
-import '../node_modules/peerjs/dist/peerjs.min.js'
-
-declare global {
-    interface Window {
-        Peer: typeof Peer,
-
-    }
-}
 
 export enum NetworkEvent {
 
@@ -68,7 +60,7 @@ export class Network {
      */
     start(id: string, options: PeerJSOption = {}): void {
 
-        let peer = new window.Peer(id, options)
+        let peer = new Peer(id, options)
 
         peer.on('open', async () => {
 
