@@ -1,4 +1,4 @@
-import Peer from "peerjs";
+import { Peer } from "peerjs";
 const proxyCache = new WeakMap();
 export function proxyfy(object, onchange, root, path = []) {
     if (!root)

@@ -1,4 +1,4 @@
-import Peer, { DataConnection, PeerJSOption } from "peerjs";
+import { Peer, DataConnection, PeerJSOption } from "peerjs";
 export declare function proxyfy<T extends object>(object: T, onchange: (root: any, path: (string | symbol)[], value: any) => void, root?: any, path?: (string | symbol)[]): T;
 export declare function unproxyfy<T extends object>(proxy: T): T | null;
 export declare enum NetworkEvent {

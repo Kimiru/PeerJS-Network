@@ -1,4 +1,4 @@
-import Peer, { DataConnection, PeerJSOption } from "peerjs"
+import { Peer, DataConnection, PeerJSOption } from "peerjs"
 
 const proxyCache: WeakMap<object, object> = new WeakMap()
 
