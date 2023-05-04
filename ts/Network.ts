@@ -424,6 +424,13 @@ export class Network {
 
     }
 
+    async unsyncAll() {
+
+        for (let uuid of [...this.syncedObjects.keys()])
+            await this.unsync(uuid)
+
+    }
+
 }
 
 export class NetworkConnection {

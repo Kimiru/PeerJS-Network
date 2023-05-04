@@ -152,6 +152,7 @@ export declare class Network {
     unban(id: string): void;
     syncObject(object: object): Promise<void>;
     unsync(uuid: string): Promise<void>;
+    unsyncAll(): Promise<void>;
 }
 export declare class NetworkConnection {
     #private;

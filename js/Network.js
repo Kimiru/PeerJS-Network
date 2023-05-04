@@ -277,6 +277,10 @@ export class Network {
         for (let callback of this.getCallbacks(NetworkEvent.HOST_P2P_UNSYNCED_DATA))
             await callback.call(this, unproxyfiedObject);
     }
+    async unsyncAll() {
+        for (let uuid of [...this.syncedObjects.keys()])
+            await this.unsync(uuid);
+    }
 }
 export class NetworkConnection {
     connection;
