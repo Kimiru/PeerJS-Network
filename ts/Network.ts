@@ -1,5 +1,47 @@
 import Peer, { DataConnection, PeerJSOption } from "peerjs"
 
+const proxyCache: WeakMap<object, object> = new WeakMap()
+
+export function proxyfy<T extends object>(
+    object: T,
+    onchange: (root: any, path: (string | symbol)[], value: any) => void,
+    root?: any,
+    path: (string | symbol)[] = []
+): T {
+
+    if (!root)
+        root = object
+
+    let proxy = new Proxy(object, {
+        get(target, property) {
+            const value = target[property]
+            if (typeof value === 'object' && value !== null) {
+                if (proxyCache.has(value))
+                    return proxyCache.get(value)
+                else
+                    return proxyfy(value, onchange, root, [...path, property])
+            }
+            return value
+        },
+
+        set(target, property, value) {
+            let res = Reflect.set(target, property, value)
+            onchange(root, [...path, property], value)
+            return res
+        }
+    })
+
+    proxyCache.set(object, proxy)
+    proxyCache.set(proxy, object)
+
+    return proxy
+
+}
+
+export function unproxyfy<T extends object>(proxy: T): T | null {
+    return proxyCache.get(proxy) as T ?? null
+}
+
 export enum NetworkEvent {
 
     PEER_OPENED,  // id has been obtained
@@ -13,11 +55,17 @@ export enum NetworkEvent {
     HOST_P2P_OPENED, // A connexion has been opened on the host/server side
     HOST_P2P_CLOSED,  // A connexion has been closed on the host/server side
     HOST_P2P_RECEIVED_DATA,
+    HOST_P2P_SYNCED_DATA,
+    HOST_P2P_SYNCED_DATA_CHANGED,
+    HOST_P2P_UNSYNCED_DATA,
 
     CLIENT_P2P_OPENED,
     CLIENT_P2P_CLOSED,
     CLIENT_P2P_RECEIVED_DATA,
     CLIENT_P2P_CONFIRMED_CONNECTION,
+    CLIENT_P2P_SYNCED_DATA,
+    CLIENT_P2P_SYNCED_DATA_CHANGED,
+    CLIENT_P2P_UNSYNCED_DATA,
 
     HOSTING_START,
     HOSTING_END,
@@ -45,6 +93,8 @@ export class Network {
 
     callbacks: Map<NetworkEvent, ((data: any) => Promise<void>)[]> = new Map()
 
+    syncedObjects: Map<string, any> = new Map()
+
     /**
      * Returns true if there is any connection currenlty active
      */
@@ -68,7 +118,7 @@ export class Network {
             this.id = peer.id
 
             for (let callback of this.getCallbacks(NetworkEvent.PEER_OPENED))
-                await callback.call(Network, this.id)
+                await callback.call(this, this.id)
 
         })
 
@@ -79,13 +129,13 @@ export class Network {
             this.connections.set(networkConnection.id, networkConnection)
 
             for (let callback of this.getCallbacks(NetworkEvent.PEER_CONNECTION))
-                await callback.call(Network, networkConnection)
+                await callback.call(this, networkConnection)
         })
 
         peer.on('close', async () => {
 
             for (let callback of this.getCallbacks(NetworkEvent.PEER_CLOSED))
-                await callback.call(Network)
+                await callback.call(this)
 
         })
 
@@ -94,21 +144,21 @@ export class Network {
 
                 if ((error as any).type === 'unavailable-id')
                     for (let callback of this.getCallbacks(NetworkEvent.UNAVAILABLE_ID))
-                        await callback.call(Network)
+                        await callback.call(this)
 
                 else if ((error as any).type === 'invalid-id')
                     for (let callback of this.getCallbacks(NetworkEvent.INVALID_ID))
-                        await callback.call(Network)
+                        await callback.call(this)
 
                 else for (let callback of this.getCallbacks(NetworkEvent.PEER_ERROR))
-                    await callback.call(Network, error)
+                    await callback.call(this, error)
 
             })
 
         peer.on('disconnected', async () => {
 
             for (let callback of this.getCallbacks(NetworkEvent.PEER_DISCONNECT))
-                await callback.call(Network)
+                await callback.call(this)
 
         })
 
@@ -176,6 +226,8 @@ export class Network {
         let networkConnection = new NetworkConnection(this.peer.connect(id, { serialization: 'json' }), false, this)
 
         this.connections.set(networkConnection.id, networkConnection)
+
+        this.syncedObjects.clear()
 
         return networkConnection
 
@@ -245,7 +297,30 @@ export class Network {
      * @param {NetworkEvent} event 
      * @param callback 
      */
-    on(event: NetworkEvent, callback: (data: any) => Promise<void>): void {
+    on(event: NetworkEvent.PEER_OPENED, callback: (id: string) => Promise<void>): void;
+    on(event: NetworkEvent.UNAVAILABLE_ID, callback: () => Promise<void>): void;
+    on(event: NetworkEvent.INVALID_ID, callback: () => Promise<void>): void;
+    on(event: NetworkEvent.PEER_CONNECTION, callback: (networkConnection: NetworkConnection) => Promise<void>): void;
+    on(event: NetworkEvent.PEER_CLOSED, callback: () => Promise<void>): void;
+    on(event: NetworkEvent.PEER_DISCONNECT, callback: () => Promise<void>): void;
+    on(event: NetworkEvent.PEER_ERROR, callback: (error: Error) => Promise<void>): void;
+
+    on(event: NetworkEvent.HOST_P2P_OPENED, callback: () => Promise<void>): void;
+    on(event: NetworkEvent.HOST_P2P_CLOSED, callback: () => Promise<void>): void;
+    on(event: NetworkEvent.HOST_P2P_RECEIVED_DATA, callback: (data: any) => Promise<void>): void;
+    on(event: NetworkEvent.HOST_P2P_SYNCED_DATA, callback: (uuid: string, proxiedObject: any) => Promise<void>): void;
+    on(event: NetworkEvent.HOST_P2P_SYNCED_DATA_CHANGED, callback: (uuid: string, path: (string | symbol)[], value: any) => Promise<void>): void;
+    on(event: NetworkEvent.HOST_P2P_UNSYNCED_DATA, callback: (unproxyfiedObject: any) => Promise<void>): void;
+
+    on(event: NetworkEvent.CLIENT_P2P_OPENED, callback: () => Promise<void>): void;
+    on(event: NetworkEvent.CLIENT_P2P_CLOSED, callback: () => Promise<void>): void;
+    on(event: NetworkEvent.CLIENT_P2P_RECEIVED_DATA, callback: (data: any) => Promise<void>): void;
+    on(event: NetworkEvent.CLIENT_P2P_CONFIRMED_CONNECTION, callback: () => Promise<void>): void;
+    on(event: NetworkEvent.CLIENT_P2P_SYNCED_DATA, callback: (uuid: string, proxiedObject: any) => Promise<void>): void;
+    on(event: NetworkEvent.CLIENT_P2P_SYNCED_DATA_CHANGED, callback: (uuid: string, path: (string | symbol)[], value: any) => Promise<void>): void;
+    on(event: NetworkEvent.CLIENT_P2P_UNSYNCED_DATA, callback: (unproxyfiedObject: any) => Promise<void>): void;
+
+    on(event: NetworkEvent, callback: (...args: any[]) => Promise<void>): void {
 
         if (!this.callbacks.has(event))
             this.callbacks.set(event, [])
@@ -308,6 +383,47 @@ export class Network {
 
     }
 
+    async syncObject(object: object): Promise<void> {
+
+        if (!this.isHosting && this.hasConnections()) throw 'Cannot sync object when not hosting and connected'
+
+        let uuid: string
+        do { uuid = crypto.randomUUID() } while (this.syncedObjects.has(uuid));
+
+        let objstr = JSON.stringify(object)
+
+        let proxy = proxyfy(JSON.parse(objstr), (root, path, value) => {
+
+            this.sendToAll({ evt: 'Network$CHANGESYNC', uuid, path, value })
+
+        })
+
+        this.syncedObjects.set(uuid, proxy)
+
+        this.sendToAll({ evt: 'Network$NEWSYNC', uuid, object: objstr })
+
+        for (let callback of this.getCallbacks(NetworkEvent.HOST_P2P_SYNCED_DATA))
+            await callback.call(this, uuid, proxy)
+
+    }
+
+    async unsync(uuid: string) {
+
+        if (!this.isHosting && this.hasConnections()) throw 'Cannot unsync object when not hosting and connected'
+
+        if (!this.syncedObjects.has(uuid)) return
+
+        let unproxyfiedObject = unproxyfy(this.syncedObjects.get(uuid))
+
+        this.syncedObjects.delete(uuid)
+
+        this.sendToAll({ evt: 'Network$UNSYNC', uuid })
+
+        for (let callback of this.getCallbacks(NetworkEvent.HOST_P2P_UNSYNCED_DATA))
+            await callback.call(this, unproxyfiedObject)
+
+    }
+
 }
 
 export class NetworkConnection {
@@ -367,6 +483,14 @@ export class NetworkConnection {
 
                 this.connection.send('Network$CONFIRM')
 
+                for (let [uuid, proxy] of this.network.syncedObjects.entries()) {
+
+                    let objstr = JSON.stringify(unproxyfy(proxy))
+
+                    this.network.sendTo(this.id, { evt: 'Network$NEWSYNC', uuid, object: objstr })
+
+                }
+
             }
 
 
@@ -411,7 +535,59 @@ export class NetworkConnection {
 
         else if (data === 'Network$CONFIRM' && !this.receiver)
             for (let callback of this.network.getCallbacks(NetworkEvent.CLIENT_P2P_CONFIRMED_CONNECTION))
-                await callback.call(this, data)
+                await callback.call(this)
+
+        else if (typeof data === 'object' && data.evt === 'Network$NEWSYNC') {
+
+            if (this.network.syncedObjects.has(data.uuid)) return
+
+            let proxy = proxyfy(JSON.parse(data.object), async (root, path, value) => {
+
+                this.network.sendToAll({ evt: 'Network$CHANGESYNC', uuid: data.uuid, path, value })
+
+            })
+
+            this.network.syncedObjects.set(data.uuid, proxy)
+
+            for (let callback of this.network.getCallbacks(NetworkEvent.CLIENT_P2P_SYNCED_DATA))
+                await callback.call(this, data.uuid, proxy)
+
+        }
+
+        else if (typeof data === 'object' && data.evt === 'Network$CHANGESYNC') {
+
+            let object = unproxyfy(this.network.syncedObjects.get(data.uuid))
+
+            let path: (string | symbol)[] = [...data.path]
+            while (path.length > 1)
+                object = object[path.shift()!]
+
+            object[path.pop()!] = data.value
+
+            if (this.receiver) {
+                this.network.sendToAllExcept(this.id, data)
+
+                for (let callback of this.network.getCallbacks(NetworkEvent.HOST_P2P_SYNCED_DATA_CHANGED))
+                    await callback.call(this, data.uuid, data.path, data.value)
+            }
+            else
+                for (let callback of this.network.getCallbacks(NetworkEvent.CLIENT_P2P_SYNCED_DATA_CHANGED))
+                    await callback.call(this, data.uuid, data.path, data.value)
+
+        }
+
+        else if (typeof data === 'object' && data.evt === 'Network$UNSYNC') {
+
+            if (!this.network.syncedObjects.has(data.uuid)) return
+
+            let unproxyfiedObject = unproxyfy(this.network.syncedObjects.get(data.uuid))
+
+            this.network.syncedObjects.delete(data.uuid)
+
+            for (let callback of this.network.getCallbacks(NetworkEvent.CLIENT_P2P_UNSYNCED_DATA))
+                await callback.call(this, unproxyfiedObject)
+
+        }
 
         else {
 

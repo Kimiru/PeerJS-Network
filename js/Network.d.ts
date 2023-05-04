@@ -1,4 +1,6 @@
 import Peer, { DataConnection, PeerJSOption } from "peerjs";
+export declare function proxyfy<T extends object>(object: T, onchange: (root: any, path: (string | symbol)[], value: any) => void, root?: any, path?: (string | symbol)[]): T;
+export declare function unproxyfy<T extends object>(proxy: T): T | null;
 export declare enum NetworkEvent {
     PEER_OPENED = 0,
     UNAVAILABLE_ID = 1,
@@ -10,12 +12,18 @@ export declare enum NetworkEvent {
     HOST_P2P_OPENED = 7,
     HOST_P2P_CLOSED = 8,
     HOST_P2P_RECEIVED_DATA = 9,
-    CLIENT_P2P_OPENED = 10,
-    CLIENT_P2P_CLOSED = 11,
-    CLIENT_P2P_RECEIVED_DATA = 12,
-    CLIENT_P2P_CONFIRMED_CONNECTION = 13,
-    HOSTING_START = 14,
-    HOSTING_END = 15
+    HOST_P2P_SYNCED_DATA = 10,
+    HOST_P2P_SYNCED_DATA_CHANGED = 11,
+    HOST_P2P_UNSYNCED_DATA = 12,
+    CLIENT_P2P_OPENED = 13,
+    CLIENT_P2P_CLOSED = 14,
+    CLIENT_P2P_RECEIVED_DATA = 15,
+    CLIENT_P2P_CONFIRMED_CONNECTION = 16,
+    CLIENT_P2P_SYNCED_DATA = 17,
+    CLIENT_P2P_SYNCED_DATA_CHANGED = 18,
+    CLIENT_P2P_UNSYNCED_DATA = 19,
+    HOSTING_START = 20,
+    HOSTING_END = 21
 }
 /**
  * The Network class uses PeerJS to manage P2P connection.
@@ -33,6 +41,7 @@ export declare class Network {
     blacklist: string[];
     connections: Map<string, NetworkConnection>;
     callbacks: Map<NetworkEvent, ((data: any) => Promise<void>)[]>;
+    syncedObjects: Map<string, any>;
     /**
      * Returns true if there is any connection currenlty active
      */
@@ -101,7 +110,26 @@ export declare class Network {
      * @param {NetworkEvent} event
      * @param callback
      */
-    on(event: NetworkEvent, callback: (data: any) => Promise<void>): void;
+    on(event: NetworkEvent.PEER_OPENED, callback: (id: string) => Promise<void>): void;
+    on(event: NetworkEvent.UNAVAILABLE_ID, callback: () => Promise<void>): void;
+    on(event: NetworkEvent.INVALID_ID, callback: () => Promise<void>): void;
+    on(event: NetworkEvent.PEER_CONNECTION, callback: (networkConnection: NetworkConnection) => Promise<void>): void;
+    on(event: NetworkEvent.PEER_CLOSED, callback: () => Promise<void>): void;
+    on(event: NetworkEvent.PEER_DISCONNECT, callback: () => Promise<void>): void;
+    on(event: NetworkEvent.PEER_ERROR, callback: (error: Error) => Promise<void>): void;
+    on(event: NetworkEvent.HOST_P2P_OPENED, callback: () => Promise<void>): void;
+    on(event: NetworkEvent.HOST_P2P_CLOSED, callback: () => Promise<void>): void;
+    on(event: NetworkEvent.HOST_P2P_RECEIVED_DATA, callback: (data: any) => Promise<void>): void;
+    on(event: NetworkEvent.HOST_P2P_SYNCED_DATA, callback: (uuid: string, proxiedObject: any) => Promise<void>): void;
+    on(event: NetworkEvent.HOST_P2P_SYNCED_DATA_CHANGED, callback: (uuid: string, path: (string | symbol)[], value: any) => Promise<void>): void;
+    on(event: NetworkEvent.HOST_P2P_UNSYNCED_DATA, callback: (unproxyfiedObject: any) => Promise<void>): void;
+    on(event: NetworkEvent.CLIENT_P2P_OPENED, callback: () => Promise<void>): void;
+    on(event: NetworkEvent.CLIENT_P2P_CLOSED, callback: () => Promise<void>): void;
+    on(event: NetworkEvent.CLIENT_P2P_RECEIVED_DATA, callback: (data: any) => Promise<void>): void;
+    on(event: NetworkEvent.CLIENT_P2P_CONFIRMED_CONNECTION, callback: () => Promise<void>): void;
+    on(event: NetworkEvent.CLIENT_P2P_SYNCED_DATA, callback: (uuid: string, proxiedObject: any) => Promise<void>): void;
+    on(event: NetworkEvent.CLIENT_P2P_SYNCED_DATA_CHANGED, callback: (uuid: string, path: (string | symbol)[], value: any) => Promise<void>): void;
+    on(event: NetworkEvent.CLIENT_P2P_UNSYNCED_DATA, callback: (unproxyfiedObject: any) => Promise<void>): void;
     /**
      * Returns all callbacks associated with the given event
      */
@@ -122,6 +150,8 @@ export declare class Network {
      * Removes a given id from the blacklist
      */
     unban(id: string): void;
+    syncObject(object: object): Promise<void>;
+    unsync(uuid: string): Promise<void>;
 }
 export declare class NetworkConnection {
     #private;
